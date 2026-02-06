@@ -13,6 +13,7 @@
   "dependencies": {
     "@sequelize/postgres": "^7.0.0-alpha.48",
     "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.4",
     "express": "^5.2.1",
     "nodemon": "^3.1.11"
   }
