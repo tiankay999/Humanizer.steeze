@@ -1,15 +1,17 @@
-import { Sequelize } from '@sequelize/core';
-import { PostgresDialect } from '@sequelize/postgres';
+const { Sequelize } = require("sequelize");
+const path = require('path');
 const dotenv = require('dotenv');
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const sequelize = new Sequelize({
-  dialect: PostgresDialect,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  ssl: true,
-  clientMinMessages: 'notice',
+  dialect: "mysql",
+  database: process.env.DB_NAME || "humanizer",
+  username: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "",
+  port: process.env.DB_PORT || "3306",
+  host: process.env.DB_HOST || "localhost",
 });
+
+
+module.exports = {sequelize};
+
