@@ -1,6 +1,13 @@
 const express= require('express');
+const sequelize = require('./config/database');
 const app = express();
 
+sequelize.sync().then(() => {
+  console.log('Database synchronized');
+})
+.catch((error) => {
+  console.error('Error synchronizing database:', error);
+});
 
 
 
