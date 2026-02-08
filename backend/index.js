@@ -1,6 +1,14 @@
 const express= require('express');
 const sequelize = require('./config/database');
 const app = express();
+const UserRouter = require('./routes/users');
+
+
+
+
+
+
+
 
 sequelize.sync().then(() => {
   console.log('Database synchronized');
@@ -17,6 +25,10 @@ app.get('/health', (req, res) => {
   res.status(200).json({ message: 'Server is healthy' });
 });
 
+
+//user routes
+app.use('/users', UserRouter);
+  
 
 
 
