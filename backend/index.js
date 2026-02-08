@@ -1,5 +1,5 @@
 const express= require('express');
-const sequelize = require('./config/database');
+const sequelize  = require('./config/database');
 const app = express();
 const UserRouter = require('./routes/users');
 
@@ -28,7 +28,7 @@ app.get('/health', (req, res) => {
 
 //user routes
 app.use('/users', UserRouter);
-  
+
 
 
 

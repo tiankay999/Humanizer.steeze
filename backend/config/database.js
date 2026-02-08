@@ -1,7 +1,7 @@
 const { Sequelize } = require("sequelize");
 const path = require('path');
 const dotenv = require('dotenv');
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config();
 
 const sequelize = new Sequelize({
   dialect: "mysql",
@@ -13,5 +13,5 @@ const sequelize = new Sequelize({
 });
 
 
-module.exports = {sequelize};
+module.exports = sequelize;
 
