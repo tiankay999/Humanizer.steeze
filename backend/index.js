@@ -1,6 +1,7 @@
-const express= require('express');
-const sequelize  = require('./config/database');
+const express = require('express');
+const sequelize = require('./config/database');
 const app = express();
+app.use(express.json());
 const UserRouter = require('./routes/users');
 
 
@@ -13,9 +14,9 @@ const UserRouter = require('./routes/users');
 sequelize.sync().then(() => {
   console.log('Database synchronized');
 })
-.catch((error) => {
-  console.error('Error synchronizing database:', error);
-});
+  .catch((error) => {
+    console.error('Error synchronizing database:', error);
+  });
 
 
 
@@ -28,6 +29,8 @@ app.get('/health', (req, res) => {
 
 //user routes
 app.use('/users', UserRouter);
+const LLMRouter = require('./routes/LLM');
+app.use('/api/llm', LLMRouter);
 
 
 
@@ -51,4 +54,4 @@ app.use('/users', UserRouter);
 
 app.listen(6000, () => {
   console.log('Server is running on port 6000');
-}   );
+});
