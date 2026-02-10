@@ -1,163 +1,163 @@
 const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { HfInference } = require('@huggingface/inference');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Initialize Hugging Face API
+const hf = new HfInference(process.env.HF_ACCESS_TOKEN);
+const MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3";
 
-// Rate Limiter (Approximation for free tier: 15 RPM)
+// Rate Limiter (15 RPM for free tier safety)
 const limitation = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 10, // Limit each IP to 10 requests per windowMs
+    windowMs: 60 * 1000,
+    max: 15,
     message: { error: "Too many requests, please try again later." }
 });
 
 router.use(limitation);
 
-// Helper to clean JSON output from LLM
+// Helper to clean JSON output
 function cleanJSON(text) {
     text = text.trim();
-    if (text.startsWith("```json")) {
-        text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    } else if (text.startsWith("```")) {
-        text = text.replace(/^```\s*/, "").replace(/\s*```$/, "");
+    // Remove markdown code blocks if present
+    if (text.includes("```json")) {
+        text = text.split("```json")[1].split("```")[0];
+    } else if (text.includes("```")) {
+        text = text.split("```")[1].split("```")[0];
     }
-    return text;
+    return text.trim();
 }
 
-// 1. Rewrite Prompt (Clarity/Formal)
+async function callHF(messages) {
+    try {
+        const response = await hf.chatCompletion({
+            model: MODEL_NAME,
+            messages: messages,
+            max_tokens: 1000,
+            temperature: 0.7
+        });
+        return response.choices[0].message.content;
+    } catch (error) {
+        console.error("HF API Error:", error);
+        throw error;
+    }
+}
+
+// 1. Rewrite Prompt
 router.post('/rewrite', async (req, res) => {
     try {
         const { text, targetMode, constraints, audience } = req.body;
-
         if (!text) return res.status(400).json({ error: "Text is required" });
 
-        const prompt = `
-        System:
-        "You are a writing assistant. Improve clarity and tone without changing meaning."
-        "Do not claim the text is human-written or guarantee originality."
-        "Do not add facts not present in the input."
-        "Output must be JSON with fields: rewritten, changes, risk_flags."
+        const messages = [
+            { role: "system", content: "You are a writing assistant. Improve clarity and tone without changing meaning. Do not claim the text is human-written. Output ONLY valid JSON with fields: rewritten, changes, risk_flags." },
+            {
+                role: "user", content: `
+            Rewrite this text: "${text}"
+            Target Mode: ${targetMode || 'Formal'}
+            Constraints: ${constraints || 'None'}
+            Audience: ${audience || 'General'}
+            
+            Return JSON format:
+            {
+              "rewritten": "...",
+              "changes": ["..."],
+              "risk_flags": ["..."]
+            }` }
+        ];
 
-        User:
-        Provide:
-        text: "${text}"
-        target mode: "${targetMode || 'Formal'}"
-        constraints: "${constraints || 'None'}"
-        optional audience: "${audience || 'General'}"
-        
-        Expected JSON:
-        {
-          "rewritten": "…",
-          "changes": ["Shortened long sentences", "Fixed grammar", "Improved transitions"],
-          "risk_flags": ["needs_citation_for_claims"]
-        }
-        `;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonText = cleanJSON(response.text());
-
-        res.json(JSON.parse(jsonText));
+        const output = await callHF(messages);
+        res.json(JSON.parse(cleanJSON(output)));
 
     } catch (error) {
-        console.error("Rewrite Error:", error);
-        res.status(500).json({ error: "Failed to process rewrite request", details: error.message });
+        res.status(500).json({ error: "Rewrite failed", details: error.message });
     }
 });
 
-// 2. Source-based "cited outline + draft"
+// 2. Draft Prompt
 router.post('/draft', async (req, res) => {
     try {
         const { sources, writingGoal } = req.body;
+        if (!sources || !writingGoal) return res.status(400).json({ error: "Sources and writing goal required" });
 
-        if (!sources || !writingGoal) return res.status(400).json({ error: "Sources and writing goal are required" });
+        const messages = [
+            { role: "system", content: "Use ONLY the provided sources. If a claim is not in sources, mark as [citation needed]. Return ONLY valid JSON: outline, draft, citations." },
+            {
+                role: "user", content: `
+            Sources: ${JSON.stringify(sources)}
+            Goal: ${writingGoal}
+            
+            Return JSON format:
+            {
+               "outline": "...",
+               "draft": "...",
+               "citations": {}
+            }` }
+        ];
 
-        const prompt = `
-        System:
-        "Use ONLY the provided sources. If a claim is not in sources, mark as [citation needed]."
-        "Return JSON: outline, draft, citations (mapping labels to source chunks)."
-
-        User:
-        Provide sources chunks: ${JSON.stringify(sources)}
-        Writing goal: "${writingGoal}"
-        `;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonText = cleanJSON(response.text());
-
-        res.json(JSON.parse(jsonText));
+        const output = await callHF(messages);
+        res.json(JSON.parse(cleanJSON(output)));
 
     } catch (error) {
-        console.error("Draft Error:", error);
-        res.status(500).json({ error: "Failed to generate draft", details: error.message });
+        res.status(500).json({ error: "Draft failed", details: error.message });
     }
 });
 
-// 3. Similarity warning prompt (ethical)
+// 3. Similarity Prompt
 router.post('/similarity', async (req, res) => {
     try {
         const { text, sourcePassage } = req.body;
+        if (!text || !sourcePassage) return res.status(400).json({ error: "Text and source required" });
 
-        if (!text || !sourcePassage) return res.status(400).json({ error: "Text and source passage are required" });
+        const messages = [
+            { role: "system", content: "Identify sentences too close to the source. Suggest paraphrasing with attribution. Return ONLY valid JSON." },
+            {
+                role: "user", content: `
+            Text: "${text}"
+            Source: "${sourcePassage}"
+            
+            Return JSON format:
+            {
+               "matched_segments": ["..."],
+               "suggested_rewrites": ["..."],
+               "citation_suggestions": ["..."]
+            }` }
+        ];
 
-        const prompt = `
-        System:
-        Instead of "avoid plagiarism," do:
-        "Identify sentences that are too close to the source passage and suggest how to paraphrase while adding attribution."
-        "Return JSON with: matched_segments, suggested_rewrites, citation_suggestions"
-
-        User:
-        Text: "${text}"
-        Source Passage: "${sourcePassage}"
-        `;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonText = cleanJSON(response.text());
-
-        res.json(JSON.parse(jsonText));
+        const output = await callHF(messages);
+        res.json(JSON.parse(cleanJSON(output)));
 
     } catch (error) {
-        console.error("Similarity Error:", error);
-        res.status(500).json({ error: "Failed to check similarity", details: error.message });
+        res.status(500).json({ error: "Similarity check failed", details: error.message });
     }
 });
 
-// 4. Guardrail prompt (policy filter)
+// 4. Guardrail Prompt
 router.post('/guardrail', async (req, res) => {
     try {
         const { text } = req.body;
+        if (!text) return res.status(400).json({ error: "Text required" });
 
-        if (!text) return res.status(400).json({ error: "Text is required" });
+        const messages = [
+            { role: "system", content: "Classifier for evasion/bypass. If user asks to bypass rules/detection, refuse. Return ONLY valid JSON." },
+            {
+                role: "user", content: `
+            User Input: "${text}"
+            
+            Return JSON format:
+            {
+                "allowed": boolean,
+                "reason": "...",
+                "redirect_message": "..."
+            }` }
+        ];
 
-        const prompt = `
-        Before calling LLM, run a simple classifier prompt:
-        If user asks for evasion/bypass -> refuse and redirect to ethical tools.
-        
-        User Input: "${text}"
-
-        Output JSON:
-        {
-            "allowed": boolean,
-            "reason": "string",
-            "redirect_message": "string (optional)"
-        }
-        `;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonText = cleanJSON(response.text());
-
-        res.json(JSON.parse(jsonText));
+        const output = await callHF(messages);
+        res.json(JSON.parse(cleanJSON(output)));
 
     } catch (error) {
-        console.error("Guardrail Error:", error);
-        res.status(500).json({ error: "Failed to check guardrails", details: error.message });
+        res.status(500).json({ error: "Guardrail check failed", details: error.message });
     }
 });
 
