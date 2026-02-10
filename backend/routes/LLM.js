@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { HfInference } = require('@huggingface/inference');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// Initialize Hugging Face API
-const hf = new HfInference(process.env.HF_ACCESS_TOKEN);
 const MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3";
+const API_URL = `https://api-inference.huggingface.co/models/${MODEL_NAME}/v1/chat/completions`;
 
 // Rate Limiter (15 RPM for free tier safety)
 const limitation = rateLimit({
@@ -19,6 +17,7 @@ router.use(limitation);
 
 // Helper to clean JSON output
 function cleanJSON(text) {
+    if (!text) return "{}";
     text = text.trim();
     // Remove markdown code blocks if present
     if (text.includes("```json")) {
@@ -30,16 +29,36 @@ function cleanJSON(text) {
 }
 
 async function callHF(messages) {
+    if (!process.env.HF_ACCESS_TOKEN) {
+        throw new Error("Missing HF_ACCESS_TOKEN in .env");
+    }
+
     try {
-        const response = await hf.chatCompletion({
-            model: MODEL_NAME,
-            messages: messages,
-            max_tokens: 1000,
-            temperature: 0.7
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.HF_ACCESS_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: messages,
+                max_tokens: 1000,
+                temperature: 0.7,
+                stream: false
+            })
         });
-        return response.choices[0].message.content;
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HF API Error: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+
     } catch (error) {
-        console.error("HF API Error:", error);
+        console.error("HF Inference Error:", error);
         throw error;
     }
 }
