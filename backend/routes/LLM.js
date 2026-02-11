@@ -3,7 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3";
+const MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct";
 const API_URL = `https://api-inference.huggingface.co/models/${MODEL_NAME}/v1/chat/completions`;
 
 // Rate Limiter (15 RPM for free tier safety)
@@ -25,41 +25,63 @@ function cleanJSON(text) {
     } else if (text.includes("```")) {
         text = text.split("```")[1].split("```")[0];
     }
+    // Try to extract JSON object/array if there's preamble text
+    const jsonStart = text.indexOf('{');
+    const jsonArrayStart = text.indexOf('[');
+    if (jsonStart === -1 && jsonArrayStart === -1) return text.trim();
+    if (jsonStart !== -1 && (jsonArrayStart === -1 || jsonStart < jsonArrayStart)) {
+        text = text.substring(jsonStart);
+    } else if (jsonArrayStart !== -1) {
+        text = text.substring(jsonArrayStart);
+    }
     return text.trim();
 }
 
-async function callHF(messages) {
+async function callHF(messages, retries = 1) {
     if (!process.env.HF_ACCESS_TOKEN) {
         throw new Error("Missing HF_ACCESS_TOKEN in .env");
     }
 
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${process.env.HF_ACCESS_TOKEN}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: MODEL_NAME,
-                messages: messages,
-                max_tokens: 1000,
-                temperature: 0.7,
-                stream: false
-            })
-        });
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.HF_ACCESS_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: MODEL_NAME,
+                    messages: messages,
+                    max_tokens: 1500,
+                    temperature: 0.7,
+                    stream: false
+                })
+            });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HF API Error: ${response.status} ${response.statusText} - ${errorText}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                // If model is loading (503), wait and retry
+                if (response.status === 503 && attempt < retries) {
+                    console.log("Model is loading, waiting 20s before retry...");
+                    await new Promise(r => setTimeout(r, 20000));
+                    continue;
+                }
+                throw new Error(`HF API Error: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+
+        } catch (error) {
+            if (attempt < retries && error.message?.includes('503')) {
+                console.log("Model is loading, waiting 20s before retry...");
+                await new Promise(r => setTimeout(r, 20000));
+                continue;
+            }
+            console.error("HF Inference Error:", error);
+            throw error;
         }
-
-        const data = await response.json();
-        return data.choices[0].message.content;
-
-    } catch (error) {
-        console.error("HF Inference Error:", error);
-        throw error;
     }
 }
 
@@ -70,20 +92,15 @@ router.post('/rewrite', async (req, res) => {
         if (!text) return res.status(400).json({ error: "Text is required" });
 
         const messages = [
-            { role: "system", content: "You are a writing assistant. Improve clarity and tone without changing meaning. Do not claim the text is human-written. Output ONLY valid JSON with fields: rewritten, changes, risk_flags." },
+            { role: "system", content: "You are a writing assistant. Improve clarity and tone without changing meaning. Do not claim the text is human-written. You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
             {
-                role: "user", content: `
-            Rewrite this text: "${text}"
-            Target Mode: ${targetMode || 'Formal'}
-            Constraints: ${constraints || 'None'}
-            Audience: ${audience || 'General'}
-            
-            Return JSON format:
-            {
-              "rewritten": "...",
-              "changes": ["..."],
-              "risk_flags": ["..."]
-            }` }
+                role: "user", content: `Rewrite this text: "${text}"
+Target Mode: ${targetMode || 'Formal'}
+Constraints: ${constraints || 'None'}
+Audience: ${audience || 'General'}
+
+Respond with ONLY this exact JSON structure:
+{"rewritten": "...", "changes": ["..."], "risk_flags": ["..."]}` }
         ];
 
         const output = await callHF(messages);
@@ -101,18 +118,13 @@ router.post('/draft', async (req, res) => {
         if (!sources || !writingGoal) return res.status(400).json({ error: "Sources and writing goal required" });
 
         const messages = [
-            { role: "system", content: "Use ONLY the provided sources. If a claim is not in sources, mark as [citation needed]. Return ONLY valid JSON: outline, draft, citations." },
+            { role: "system", content: "Use ONLY the provided sources. If a claim is not in sources, mark as [citation needed]. You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
             {
-                role: "user", content: `
-            Sources: ${JSON.stringify(sources)}
-            Goal: ${writingGoal}
-            
-            Return JSON format:
-            {
-               "outline": "...",
-               "draft": "...",
-               "citations": {}
-            }` }
+                role: "user", content: `Sources: ${JSON.stringify(sources)}
+Goal: ${writingGoal}
+
+Respond with ONLY this exact JSON structure:
+{"outline": "...", "draft": "...", "citations": {}}` }
         ];
 
         const output = await callHF(messages);
@@ -130,18 +142,13 @@ router.post('/similarity', async (req, res) => {
         if (!text || !sourcePassage) return res.status(400).json({ error: "Text and source required" });
 
         const messages = [
-            { role: "system", content: "Identify sentences too close to the source. Suggest paraphrasing with attribution. Return ONLY valid JSON." },
+            { role: "system", content: "Identify sentences too close to the source. Suggest paraphrasing with attribution. You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
             {
-                role: "user", content: `
-            Text: "${text}"
-            Source: "${sourcePassage}"
-            
-            Return JSON format:
-            {
-               "matched_segments": ["..."],
-               "suggested_rewrites": ["..."],
-               "citation_suggestions": ["..."]
-            }` }
+                role: "user", content: `Text: "${text}"
+Source: "${sourcePassage}"
+
+Respond with ONLY this exact JSON structure:
+{"matched_segments": ["..."], "suggested_rewrites": ["..."], "citation_suggestions": ["..."]}` }
         ];
 
         const output = await callHF(messages);
@@ -159,17 +166,12 @@ router.post('/guardrail', async (req, res) => {
         if (!text) return res.status(400).json({ error: "Text required" });
 
         const messages = [
-            { role: "system", content: "Classifier for evasion/bypass. If user asks to bypass rules/detection, refuse. Return ONLY valid JSON." },
+            { role: "system", content: "You are a content classifier. If the user is asking to bypass rules, detection systems, or cheat, refuse the request. You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
             {
-                role: "user", content: `
-            User Input: "${text}"
-            
-            Return JSON format:
-            {
-                "allowed": boolean,
-                "reason": "...",
-                "redirect_message": "..."
-            }` }
+                role: "user", content: `User Input: "${text}"
+
+Respond with ONLY this exact JSON structure:
+{"allowed": true_or_false, "reason": "...", "redirect_message": "..."}` }
         ];
 
         const output = await callHF(messages);
