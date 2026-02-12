@@ -3,10 +3,11 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct";
-const API_URL = `https://api-inference.huggingface.co/models/${MODEL_NAME}/v1/chat/completions`;
+// Using Groq's free API with Llama 3.1 8B
+const MODEL_NAME = "llama-3.1-8b-instant";
+const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-// Rate Limiter (15 RPM for free tier safety)
+// Rate Limiter (15 RPM — well within Groq's free 30 RPM limit)
 const limitation = rateLimit({
     windowMs: 60 * 1000,
     max: 15,
@@ -37,51 +38,38 @@ function cleanJSON(text) {
     return text.trim();
 }
 
-async function callHF(messages, retries = 1) {
-    if (!process.env.HF_ACCESS_TOKEN) {
-        throw new Error("Missing HF_ACCESS_TOKEN in .env");
+async function callLLM(messages) {
+    if (!process.env.GROQ_API_KEY) {
+        throw new Error("Missing GROQ_API_KEY in .env — get a free key at https://console.groq.com");
     }
 
-    for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-            const response = await fetch(API_URL, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${process.env.HF_ACCESS_TOKEN}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: MODEL_NAME,
-                    messages: messages,
-                    max_tokens: 1500,
-                    temperature: 0.7,
-                    stream: false
-                })
-            });
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: messages,
+                max_tokens: 1500,
+                temperature: 0.7,
+                stream: false
+            })
+        });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                // If model is loading (503), wait and retry
-                if (response.status === 503 && attempt < retries) {
-                    console.log("Model is loading, waiting 20s before retry...");
-                    await new Promise(r => setTimeout(r, 20000));
-                    continue;
-                }
-                throw new Error(`HF API Error: ${response.status} ${response.statusText} - ${errorText}`);
-            }
-
-            const data = await response.json();
-            return data.choices[0].message.content;
-
-        } catch (error) {
-            if (attempt < retries && error.message?.includes('503')) {
-                console.log("Model is loading, waiting 20s before retry...");
-                await new Promise(r => setTimeout(r, 20000));
-                continue;
-            }
-            console.error("HF Inference Error:", error);
-            throw error;
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Groq API Error: ${response.status} ${response.statusText} - ${errorText}`);
         }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+
+    } catch (error) {
+        console.error("Groq Inference Error:", error);
+        throw error;
     }
 }
 
@@ -103,7 +91,7 @@ Respond with ONLY this exact JSON structure:
 {"rewritten": "...", "changes": ["..."], "risk_flags": ["..."]}` }
         ];
 
-        const output = await callHF(messages);
+        const output = await callLLM(messages);
         res.json(JSON.parse(cleanJSON(output)));
 
     } catch (error) {
@@ -127,7 +115,7 @@ Respond with ONLY this exact JSON structure:
 {"outline": "...", "draft": "...", "citations": {}}` }
         ];
 
-        const output = await callHF(messages);
+        const output = await callLLM(messages);
         res.json(JSON.parse(cleanJSON(output)));
 
     } catch (error) {
@@ -151,7 +139,7 @@ Respond with ONLY this exact JSON structure:
 {"matched_segments": ["..."], "suggested_rewrites": ["..."], "citation_suggestions": ["..."]}` }
         ];
 
-        const output = await callHF(messages);
+        const output = await callLLM(messages);
         res.json(JSON.parse(cleanJSON(output)));
 
     } catch (error) {
@@ -174,7 +162,7 @@ Respond with ONLY this exact JSON structure:
 {"allowed": true_or_false, "reason": "...", "redirect_message": "..."}` }
         ];
 
-        const output = await callHF(messages);
+        const output = await callLLM(messages);
         res.json(JSON.parse(cleanJSON(output)));
 
     } catch (error) {
