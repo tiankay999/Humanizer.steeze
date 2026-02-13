@@ -1,3 +1,4 @@
 node_modules
 .env
 backend/scripts/test-model.js
+backend/scripts/test-llm-full.js
