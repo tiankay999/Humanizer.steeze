@@ -73,7 +73,7 @@ async function callLLM(messages) {
     }
 }
 
-// 1. Rewrite Prompt
+// 1. Rewrite Prompt( system prompt emphasizes improving clarity, coherence, and tone without changing meaning, while ensuring the output is human-like and strictly in JSON format. The user prompt provides the text to rewrite along with optional parameters for target mode, constraints, and audience. The response is expected to include the rewritten text, a list of changes made, and any risk flags identified.)
 router.post('/rewrite', async (req, res) => {
     try {
         const { text, targetMode, constraints, audience } = req.body;
@@ -171,3 +171,5 @@ Respond with ONLY this exact JSON structure:
 });
 
 module.exports = router;
+
+// this file defines the /rewrite, /draft, /similarity, and /guardrail endpoints, each with specific system and user prompts to guide the LLM's response. The callLLM function handles communication with Groq's API, and the cleanJSON helper ensures we extract valid JSON from the LLM's output. Rate limiting is applied to prevent abuse and stay within API limits.
