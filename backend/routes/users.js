@@ -16,7 +16,7 @@ router.post("/", (req, res) => {
         const existingUser = User.findOne({ where: { email } });
 
         if (existingUser) {
-            return res.status(400).json({ message: "User already exists" });
+            return res.status(400).json({ message: "User already  exist in our system" });
         }
 
         const salt = bcrypt.genSaltSync(10);
