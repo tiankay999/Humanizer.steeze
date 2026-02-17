@@ -3,6 +3,7 @@ const sequelize = require('./config/database');
 const app = express();
 app.use(express.json());
 const UserRouter = require('./routes/users');
+const LoginRouter = require('./routes/login');
 
 
 
@@ -34,7 +35,8 @@ app.use('/api/llm', LLMRouter);
 
 
 
-
+//login routes
+app.use('/login', LoginRouter);
 
 
 
