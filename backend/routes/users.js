@@ -50,12 +50,43 @@ router.post("/", (req, res) => {
 });
 
 
+router.get("/alluser",(req,res)=>{
+
+    try{
+    const findAllUsers= User.findAll();
+     if (findAllUsers){
+        return res.status(200).json({message:"This all User",findAllUsers});
+     }
+
+    }catch(err){
+        return res.status(500).json({message:"Internal server error"});
+
+    }
+});
 
 
 
 
+router.delete("/:id",(req,res)=>{
+
+    try{  
+        
+        const deleteUser= User.destroy({where:{id:req.params.id}});
+        if (deleteUser){
+            return res.status(200).json({message:"User deleted successfully"});
+        }else{
+            return res.status(404).json({message:"User not found"});
+        }
 
 
+
+
+    }    catch(err){
+        return res.status(500).json({message:"Internal server error"});
+
+
+
+    }});
 
 
 module.exports = router;
