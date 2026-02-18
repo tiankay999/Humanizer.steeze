@@ -80,7 +80,7 @@ router.post('/rewrite', async (req, res) => {
         if (!text) return res.status(400).json({ error: "Text is required" });
 
         const messages = [
-            { role: "system", content: "You are a writing assistant.  Your Job is to improve clarity, coherence, and tone without changing meaning. Do not claim the text is human-written, yet make it really human-like as perfect as possible not like the generated ones in your caches . You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
+            { role: "system", content: "You are a writing assistant.  Your Job is to improve clarity, coherence, and tone without changing meaning. Do not claim the text is human-written, yet make it really human-like as perfect as possible not like the generated ones in your caches . You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON. Remove ALL HYPHENS REPLACE with Commas or Other Punctuations that fit the context." },
             {
                 role: "user", content: `Rewrite this text: "${text}"
 Target Mode: ${targetMode || 'Formal' ||'academic '}
