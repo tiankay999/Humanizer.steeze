@@ -4,6 +4,7 @@ const app = express();
 app.use(express.json());
 const UserRouter = require('./routes/users');
 const LoginRouter = require('./routes/login');
+const AdminRouter = require('./routes/admin');
 
 
 
@@ -37,6 +38,9 @@ app.use('/api/llm', LLMRouter);
 
 //login routes
 app.use('/login', LoginRouter);
+
+//admin routes
+app.use('/admin',AdminRouter);
 
 
 
