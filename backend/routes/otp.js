@@ -2,17 +2,23 @@ const express = require("express");
 const router = express.Router();
 const transporter = require("../config/email");
 const dotenv = require("dotenv");
+const authmiddleware = require("../middleware/authmiddleware");
 dotenv. config();
+
+
 storeOTP = {};
 
 
 
 
+
 //verification code (OTP) sending API  //
-router.post("/send-otp", async (req, res) => {
+router.post("/send-otp",authmiddleware, async (req, res) => {
   try {
   
     const { email } = req.body;
+    const {id}=req.user;
+    
 
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -47,8 +53,9 @@ router.post("/send-otp", async (req, res) => {
   }
 });
 
-router.post("/verify-otp", async (req, res) => {
+router.post("/verify-otp",authmiddleware, async (req, res) => {
   const otp = req.body.otp;
+  const id=req.user.id;
 
 
   if (!otp) {
