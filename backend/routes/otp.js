@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const transporter = require("../config/email");
-const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 dotenv. config();
+storeOTP = {};
 
 
 
@@ -11,7 +11,7 @@ dotenv. config();
 //verification code (OTP) sending API  //
 router.post("/send-otp", async (req, res) => {
   try {
-    const id = req.user.id;
+  
     const { email } = req.body;
 
     if (!email) {
@@ -47,9 +47,9 @@ router.post("/send-otp", async (req, res) => {
   }
 });
 
-app.post("/verify-otp", authMiddleware, async (req, res) => {
+router.post("/verify-otp", async (req, res) => {
   const otp = req.body.otp;
-  const id = req.user.id;
+
 
   if (!otp) {
     return res.status(400).json({ message: "OTP is required" });
@@ -73,3 +73,6 @@ app.post("/verify-otp", authMiddleware, async (req, res) => {
     return res.status(401).json({ message: "Invalid OTP" });
   }
 });
+
+
+module.exports = router;

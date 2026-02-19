@@ -5,6 +5,7 @@ app.use(express.json());
 const UserRouter = require('./routes/users');
 const LoginRouter = require('./routes/login');
 const AdminRouter = require('./routes/admin');
+const OTPRouter = require('./routes/otp');
 
 
 
@@ -43,7 +44,9 @@ app.use('/login', LoginRouter);
 app.use('/admin',AdminRouter);
 
 
-
+//otp routes
+app.use('/otp', OTPRouter);
+  
 
 
 
