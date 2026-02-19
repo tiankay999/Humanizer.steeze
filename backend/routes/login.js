@@ -1,4 +1,4 @@
-const express= require("express");
+const express = require("express");
 const router = express.Router();
 const User = require("../models/users");
 const Admin = require("../models/admin");
@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 dotenv.config();
 
-router.post("/", async(req, res) => {
+router.post("/", async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -21,12 +21,12 @@ router.post("/", async(req, res) => {
             return res.status(400).json({ message: "User not found" });
         }
 
-        const isPasswordValid = await bcrypt.compareSync(password,user.password);
+        const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
             return res.status(400).json({ message: "Invalid password" });
         }
-         
+
 
 
         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
@@ -42,50 +42,51 @@ router.post("/", async(req, res) => {
         });
 
     } catch (error) {
-        return res.status(500).json({ message: "Internal server error",
-            error:error.message
-         });
+        return res.status(500).json({
+            message: "Internal server error",
+   
+        });
     }
 });
 
 
 
-router.post("/admin-Login",(req,res)=>{
+router.post("/admin-Login", (req, res) => {
     try {
-        const {email,password} = req.body;
+        const { email, password } = req.body;
 
-        if(!email || !password){
-            return res.status(400).json({message:"All fields are required"});
+        if (!email || !password) {
+            return res.status(400).json({ message: "All fields are required" });
         }
 
-        const admin = Admin.findOne({where:{email}});
+        const admin = Admin.findOne({ where: { email } });
 
-        if(!admin){
-            return res.status(400).json({message:"Admin not found"});
+        if (!admin) {
+            return res.status(400).json({ message: "Admin not found" });
         }
 
-        const isPasswordValid = bcrypt.compareSync(password,admin.password);
+        const isPasswordValid = bcrypt.compareSync(password, admin.password);
 
-        if(!isPasswordValid){
-            return res.status(400).json({message:"Invalid password"});
+        if (!isPasswordValid) {
+            return res.status(400).json({ message: "Invalid password" });
         }
 
-        const token = jwt.sign({id:admin.id},process.env.JWT_SECRET,{expiresIn:"1h"});
+        const token = jwt.sign({ id: admin.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         return res.status(200).json({
-            message:"Admin logged in successfully",
-            admin:admin,
-            token:token,
-            email:admin.email,
-            name:admin.name,
-            phone:admin.phone,
-            id:admin.id,
+            message: "Admin logged in successfully",
+            admin: admin,
+            token: token,
+            email: admin.email,
+            name: admin.name,
+            phone: admin.phone,
+            id: admin.id,
         });
 
     } catch (error) {
-        return res.status(500).json({message:"Internal server error"});
+        return res.status(500).json({ message: "Internal server error" });
     }
-}   )
+})
 
 
 

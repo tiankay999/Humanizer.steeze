@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import BackgroundEffects from "@/app/components/BackgroundEffects";
+import { useRouter } from "next/navigation";
 
 /* ── Eye icon SVGs ── */
 function EyeIcon() {
@@ -29,6 +30,7 @@ function EyeOffIcon() {
    Login Page
    ───────────────────────────────────── */
 export default function LoginPage() {
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -37,18 +39,43 @@ export default function LoginPage() {
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!email.trim() || !password) {
-            setError("Please fill in all fields.");
-            return;
+        try {
+            if (!email.trim() || !password) {
+                setError("Please fill in all fields.");
+                return;
+            }
+            setError("");
+            setLoading(true);
+            const res = await fetch("http://localhost:5000/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email,
+                    password,
+                }),
+            });
+
+
+            const data = await res.json();
+
+            if (data.token) {
+                console.log(data);
+                localStorage.setItem("token", data.token);
+                router.push("/");
+            } else {
+                setError(data.message || "Login failed. Please try again.");
+            }
+
+
+
+        } catch (error) {
+            console.log(error);
+            setError("Invalid credentials");
+        } finally {
+            setLoading(false);
         }
-        setError("");
-        setLoading(true);
-        // TODO: wire up to real auth endpoint
-        await new Promise((r) => setTimeout(r, 1200));
-        setLoading(false);
-        // placeholder: just clear
-        setEmail("");
-        setPassword("");
     }
 
     return (
@@ -88,7 +115,7 @@ export default function LoginPage() {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Email */}
                     <div className="space-y-1.5">
                         <label

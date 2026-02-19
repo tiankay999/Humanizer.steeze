@@ -6,10 +6,16 @@ const UserRouter = require('./routes/users');
 const LoginRouter = require('./routes/login');
 const AdminRouter = require('./routes/admin');
 const OTPRouter = require('./routes/otp');
+const cors = require('cors');
 
 
 
 
+app.use(cors({
+  origin: ["http://localhost:5000", "http://localhost:3000"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  credentials: true,
+}));
 
 
 
@@ -46,7 +52,6 @@ app.use('/admin',AdminRouter);
 
 //otp routes
 app.use('/otp', OTPRouter);
-  
 
 
 
@@ -61,6 +66,7 @@ app.use('/otp', OTPRouter);
 
 
 
-app.listen(6000, () => {
-  console.log('Server is running on port 6000');
+
+app.listen(5000, () => {
+  console.log('Server is running on port 5000');
 });

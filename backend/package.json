@@ -14,6 +14,7 @@
     "@google/generative-ai": "^0.24.1",
     "@sequelize/postgres": "^7.0.0-alpha.48",
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
