@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 dotenv.config();
 
-router.post("/", (req, res) => {
+router.post("/", async(req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -15,17 +15,19 @@ router.post("/", (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        const user = User.findOne({ where: { email } });
+        const user = await User.findOne({ where: { email } });
 
         if (!user) {
             return res.status(400).json({ message: "User not found" });
         }
 
-        const isPasswordValid = bcrypt.compareSync(password, user.password);
+        const isPasswordValid = await bcrypt.compareSync(password,user.password);
 
         if (!isPasswordValid) {
             return res.status(400).json({ message: "Invalid password" });
         }
+         
+
 
         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
@@ -40,7 +42,9 @@ router.post("/", (req, res) => {
         });
 
     } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ message: "Internal server error",
+            error:error.message
+         });
     }
 });
 
