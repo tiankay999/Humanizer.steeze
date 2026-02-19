@@ -57,6 +57,7 @@ router.post("/verify-otp",authmiddleware, async (req, res) => {
   const otp = req.body.otp;
   const id=req.user.id;
 
+  
 
   if (!otp) {
     return res.status(400).json({ message: "OTP is required" });
