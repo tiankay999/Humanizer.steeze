@@ -50,6 +50,22 @@ export default function HomePage() {
     setError("");
     setLoading(true);
     try {
+   const res= await  fetch("http://localhost:5000/api/llm/rewrite",{
+              method:" POST",
+              headers:{
+                "Content-Type":"Application/json",
+
+              },
+              body:JSON.stringify{}
+   }
+   )
+
+
+
+
+
+
+
       const result = await mockHumanize(inputText);
       setOutputText(result);
     } finally {
