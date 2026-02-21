@@ -6,6 +6,7 @@ import BackgroundEffects from "./components/BackgroundEffects";
 import { InputCard, OutputCard } from "./components/EditorCards";
 import ActionBar, { type Tone } from "./components/ActionBar";
 import Toast from "./components/Toast";
+import HistoryPanel from "./components/HistoryPanel";
 
 const API_BASE = "http://localhost:5000/api/llm";
 
@@ -20,12 +21,40 @@ export default function HomePage() {
   const [toast, setToast] = useState("");
   const [keepFormatting, setKeepFormatting] = useState(false);
   const [tone, setTone] = useState<Tone>("Neutral");
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   /* ── actions ── */
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2200);
   }, []);
+
+  /** Save the text pair to history (fire-and-forget, only if logged in) */
+  const saveToHistory = useCallback(
+    async (original: string, humanized: string, usedTone: string) => {
+      const token = localStorage.getItem("token");
+      if (!token) return; // not logged in — skip silently
+
+      try {
+        await fetch(`${API_BASE}/history`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            text: original,
+            humanizedText: humanized,
+            tone: usedTone,
+          }),
+        });
+      } catch {
+        // non-critical — don't block the user
+        console.warn("Could not save to history");
+      }
+    },
+    []
+  );
 
   const handleHumanize = useCallback(async () => {
     if (!inputText.trim()) {
@@ -47,7 +76,13 @@ export default function HomePage() {
       }
 
       const data = await res.json();
-      setOutputText(data.rewritten ?? "");
+      const rewritten = data.rewritten ?? "";
+      setOutputText(rewritten);
+
+      // Auto-save to history
+      if (rewritten) {
+        saveToHistory(inputText, rewritten, tone);
+      }
 
       // Show a brief summary of what was changed
       if (data.changes && data.changes.length > 0) {
@@ -60,7 +95,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [inputText, tone, showToast]);
+  }, [inputText, tone, showToast, saveToHistory]);
 
   const handleClear = useCallback(() => {
     setInputText("");
@@ -78,11 +113,18 @@ export default function HomePage() {
     }
   }, [outputText, showToast]);
 
+  /** Load a history entry back into the editor */
+  const handleLoadEntry = useCallback((original: string, humanized: string) => {
+    setInputText(original);
+    setOutputText(humanized);
+    showToast("Loaded from history");
+  }, [showToast]);
+
   /* ═══════════════════════ JSX ═══════════════════════ */
   return (
     <div className="relative flex min-h-screen flex-col">
       <BackgroundEffects />
-      <Header />
+      <Header onOpenHistory={() => setHistoryOpen(true)} />
 
       {/* ════════ MAIN ════════ */}
       <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:px-6 lg:px-8">
@@ -130,6 +172,13 @@ export default function HomePage() {
 
       {/* Toast */}
       {toast && <Toast message={toast} />}
+
+      {/* History Panel */}
+      <HistoryPanel
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onLoadEntry={handleLoadEntry}
+      />
     </div>
   );
 }
