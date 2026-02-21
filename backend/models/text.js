@@ -1,5 +1,5 @@
-const Datatypes= require("sequelize").DataTypes;
-const sequelize= require("../config/database");
+const Datatypes = require("sequelize").DataTypes;
+const sequelize = require("../config/database");
 
 const Text = sequelize.define("Text", {
     id: {
@@ -13,6 +13,15 @@ const Text = sequelize.define("Text", {
     },
     humanizedText: {
         type: Datatypes.TEXT,
+        allowNull: false
+    },
+    tone: {
+        type: Datatypes.STRING,
+        allowNull: false,
+        defaultValue: "Neutral"
+    },
+    userId: {
+        type: Datatypes.INTEGER,
         allowNull: false
     }
 });
