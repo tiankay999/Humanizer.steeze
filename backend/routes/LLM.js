@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const Text = require('../models/text');
+const User = require('../models/users');
+const authMiddleware = require('../middleware/authmiddleware');
+
+// Set up association
+User.hasMany(Text, { foreignKey: 'userId' });
+Text.belongsTo(User, { foreignKey: 'userId' });
 
 // Using Groq's free API with Llama 3.1 8B
 const MODEL_NAME = "llama-3.1-8b-instant";
@@ -81,10 +88,10 @@ router.post('/rewrite', async (req, res) => {
 
         const messages = [
             { role: "system", content: "You are a rewriting assistant. Rewrite the user’s text so it sounds naturally written by a real person, while keeping the original meaning, facts, numbers, and named entities unchanged. " },
-            {role:"system", content:"If the user provides constraints, target audience, or target writing mode, ensure the rewritten text adheres to those requirements. If no specific instructions are given, simply enhance the text while maintaining its original intent, REMOVE ALL DASHES WITH THE SENTENCES AND REPLACE IT WITH SPACES OR OTHER PUNCTUATIONS."},
+            { role: "system", content: "If the user provides constraints, target audience, or target writing mode, ensure the rewritten text adheres to those requirements. If no specific instructions are given, simply enhance the text while maintaining its original intent, REMOVE ALL DASHES WITH THE SENTENCES AND REPLACE IT WITH SPACES OR OTHER PUNCTUATIONS." },
             {
                 role: "user", content: `Rewrite this text: "${text}"
-Target Mode: ${targetMode || 'Formal' ||'academic '}
+Target Mode: ${targetMode || 'Formal' || 'academic '}
 Constraints: ${constraints || 'None' || `${constraints}`}
 Audience: ${audience || 'General' || `${audience}`}
 
@@ -173,6 +180,44 @@ Respond with ONLY this exact JSON structure:
     }
 });
 
+// 5. Save history entry (auth-protected)
+router.post('/history', authMiddleware, async (req, res) => {
+    try {
+        const { text, humanizedText, tone } = req.body;
+        if (!text || !humanizedText) {
+            return res.status(400).json({ error: "text and humanizedText are required" });
+        }
+
+        const entry = await Text.create({
+            text,
+            humanizedText,
+            tone: tone || "Neutral",
+            userId: req.user.id
+        });
+
+        res.status(201).json(entry);
+    } catch (error) {
+        console.error("Save history error:", error);
+        res.status(500).json({ error: "Failed to save history", details: error.message });
+    }
+});
+
+// 6. Get user's history (auth-protected)
+router.get('/history', authMiddleware, async (req, res) => {
+    try {
+        const entries = await Text.findAll({
+            where: { userId: req.user.id },
+            order: [['createdAt', 'DESC']],
+            limit: 50
+        });
+
+        res.json(entries);
+    } catch (error) {
+        console.error("Fetch history error:", error);
+        res.status(500).json({ error: "Failed to fetch history", details: error.message });
+    }
+});
+
 module.exports = router;
 
-// this file defines the /rewrite, /draft, /similarity, and /guardrail endpoints, each with specific system and user prompts to guide the LLM's response. The callLLM function handles communication with Groq's API, and the cleanJSON helper ensures we extract valid JSON from the LLM's output. Rate limiting is applied to prevent abuse and stay within API limits.
+// this file defines the /rewrite, /draft, /similarity, /guardrail, and /history endpoints, each with specific system and user prompts to guide the LLM's response. The callLLM function handles communication with Groq's API, and the cleanJSON helper ensures we extract valid JSON from the LLM's output. Rate limiting is applied to prevent abuse and stay within API limits.
