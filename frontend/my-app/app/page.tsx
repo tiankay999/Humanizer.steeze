@@ -7,22 +7,7 @@ import { InputCard, OutputCard } from "./components/EditorCards";
 import ActionBar, { type Tone } from "./components/ActionBar";
 import Toast from "./components/Toast";
 
-/* ──────────────────────────────────────────────
-   Mock humanize function
-   ────────────────────────────────────────────── */
-async function mockHumanize(text: string): Promise<string> {
-  return new Promise((resolve) =>
-    setTimeout(() => {
-      const result = text
-        .replace(/\s{2,}/g, " ")
-        .replace(/\bvery\b/gi, "quite")
-        .replace(/\buse\b/gi, "utilize")
-        .replace(/\bin order to\b/gi, "to")
-        .replace(/\bbasically\b/gi, "essentially");
-      resolve(result);
-    }, 900)
-  );
-}
+const API_BASE = "http://localhost:5000/api/llm";
 
 /* ══════════════════════════════════════════════
    Main Page
@@ -50,28 +35,32 @@ export default function HomePage() {
     setError("");
     setLoading(true);
     try {
-   const res= await  fetch("http://localhost:5000/api/llm/rewrite",{
-              method:" POST",
-              headers:{
-                "Content-Type":"Application/json",
+      const res = await fetch(`${API_BASE}/rewrite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: inputText, targetMode: tone }),
+      });
 
-              },
-              body:JSON.stringify{}
-   }
-   )
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || `Server error (${res.status})`);
+      }
 
+      const data = await res.json();
+      setOutputText(data.rewritten ?? "");
 
-
-
-
-
-
-      const result = await mockHumanize(inputText);
-      setOutputText(result);
+      // Show a brief summary of what was changed
+      if (data.changes && data.changes.length > 0) {
+        showToast(`${data.changes.length} change(s) applied`);
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
     } finally {
       setLoading(false);
     }
-  }, [inputText]);
+  }, [inputText, tone, showToast]);
 
   const handleClear = useCallback(() => {
     setInputText("");
