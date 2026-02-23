@@ -13,7 +13,7 @@ const TOC = [
     { id: "getting-started", label: "Getting Started" },
     { id: "how-it-works", label: "How It Works" },
     { id: "features", label: "Features" },
-    { id: "api-reference", label: "API Reference" },
+    { id: "about", label: "About Steeze Tech" },
     { id: "account", label: "Account & Auth" },
     { id: "faq", label: "FAQ" },
 ] as const;
@@ -144,52 +144,7 @@ function FaqItem({
     );
 }
 
-/* ── Endpoint card ── */
-function EndpointCard({
-    method,
-    path,
-    description,
-    body,
-    response,
-}: {
-    method: string;
-    path: string;
-    description: string;
-    body?: string;
-    response?: string;
-}) {
-    return (
-        <div className="rounded-xl border border-card-border bg-card-bg p-5 backdrop-blur-lg space-y-3">
-            <div className="flex items-center gap-3 flex-wrap">
-                <span className="rounded-md bg-teal/15 px-2.5 py-1 text-xs font-bold tracking-wider text-teal uppercase">
-                    {method}
-                </span>
-                <code className="text-sm font-mono text-foreground/80">{path}</code>
-            </div>
-            <p className="text-xs text-foreground/60">{description}</p>
-            {body && (
-                <div>
-                    <span className="text-xs font-semibold tracking-wide text-teal/70 uppercase">
-                        Request Body
-                    </span>
-                    <pre className="mt-1.5 overflow-x-auto rounded-lg border border-card-border bg-input-bg px-4 py-3 text-xs font-mono leading-relaxed text-foreground/70">
-                        {body}
-                    </pre>
-                </div>
-            )}
-            {response && (
-                <div>
-                    <span className="text-xs font-semibold tracking-wide text-teal/70 uppercase">
-                        Response
-                    </span>
-                    <pre className="mt-1.5 overflow-x-auto rounded-lg border border-card-border bg-input-bg px-4 py-3 text-xs font-mono leading-relaxed text-foreground/70">
-                        {response}
-                    </pre>
-                </div>
-            )}
-        </div>
-    );
-}
+
 
 /* ══════════════════════════════════════════════
    Docs Page
@@ -235,8 +190,8 @@ export default function DocsPage() {
                                 key={id}
                                 href={`#${id}`}
                                 className={`block rounded-lg px-3 py-2 text-xs font-medium transition ${activeSection === id
-                                        ? "bg-teal/10 text-teal border-l-2 border-teal"
-                                        : "text-foreground/50 hover:bg-white/5 hover:text-foreground/80"
+                                    ? "bg-teal/10 text-teal border-l-2 border-teal"
+                                    : "text-foreground/50 hover:bg-white/5 hover:text-foreground/80"
                                     }`}
                             >
                                 {label}
@@ -282,8 +237,8 @@ export default function DocsPage() {
                                     href={`#${id}`}
                                     onClick={() => setMobileNavOpen(false)}
                                     className={`block rounded-lg px-3 py-2 text-xs font-medium transition ${activeSection === id
-                                            ? "bg-teal/10 text-teal"
-                                            : "text-foreground/50 hover:text-foreground/80"
+                                        ? "bg-teal/10 text-teal"
+                                        : "text-foreground/50 hover:text-foreground/80"
                                         }`}
                                 >
                                     {label}
@@ -405,8 +360,8 @@ export default function DocsPage() {
                             <FeatureCard
                                 icon={
                                     <Image src="/pen.webp" alt="Rewrite"
-                                    width={40}
-                                    height={20}
+                                        width={40}
+                                        height={20}
                                     />
                                 }
                                 title="Smart Rewriting"
@@ -415,8 +370,8 @@ export default function DocsPage() {
                             <FeatureCard
                                 icon={
                                     <Image src="/meg.png" alt="Rewrite"
-                                    width={40}
-                                    height={20}
+                                        width={40}
+                                        height={20}
                                     />
                                 }
                                 title="Tone Selection"
@@ -425,8 +380,8 @@ export default function DocsPage() {
                             <FeatureCard
                                 icon={
                                     <Image src="/clip.avif" alt="Rewrite"
-                                    width={40}
-                                    height={20}
+                                        width={40}
+                                        height={20}
                                     />
                                 }
                                 title="One-Click Copy"
@@ -435,8 +390,8 @@ export default function DocsPage() {
                             <FeatureCard
                                 icon={
                                     <Image src="/clock.avif" alt="Rewrite"
-                                    width={40}
-                                    height={20}
+                                        width={40}
+                                        height={20}
                                     />
                                 }
                                 title="History Tracking"
@@ -445,8 +400,8 @@ export default function DocsPage() {
                             <FeatureCard
                                 icon={
                                     <Image src="/file4.0.png" alt="Rewrite"
-                                    width={80}
-                                    height={90}
+                                        width={80}
+                                        height={90}
                                     />
                                 }
                                 title="Keep Formatting"
@@ -455,8 +410,8 @@ export default function DocsPage() {
                             <FeatureCard
                                 icon={
                                     <Image src="/pas.png" alt="Rewrite"
-                                    width={40}
-                                    height={20}
+                                        width={40}
+                                        height={20}
                                     />
                                 }
                                 title="Secure Auth"
@@ -465,86 +420,100 @@ export default function DocsPage() {
                         </div>
                     </Section>
 
-                    {/* ──────── API REFERENCE ──────── */}
-                    <Section id="api-reference" title="API Reference">
+                    {/* ──────── ABOUT STEEZE TECH ──────── */}
+                    <Section id="about" title="About Steeze Tech">
+                        <div className="rounded-xl border border-card-border bg-card-bg p-6 backdrop-blur-lg sm:p-8">
+                            <div className="flex items-start gap-4 mb-5">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal to-teal-dark text-lg font-black text-[#0a0e1a]">
+                                    S
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-extrabold tracking-tight text-foreground sm:text-lg">
+                                        Built by Steeze Tech
+                                    </h3>
+                                    <p className="text-xs text-foreground/45 mt-0.5">
+                                        A small tech startup with big ambitions
+                                    </p>
+                                </div>
+                            </div>
+                            <p>
+                                <strong className="text-foreground">Steeze Tech</strong> is a small,
+                                independent tech startup founded with a simple belief: technology
+                                should make everyday tasks easier without sacrificing quality or
+                                authenticity. We&apos;re a tight-knit team of developers, designers, and
+                                AI enthusiasts building tools that genuinely help people.
+                            </p>
+                        </div>
+
+                        <h3 className="text-base font-bold text-foreground mt-2">Our Mission</h3>
                         <p>
-                            The Steeze Humanizer backend exposes a REST API at{" "}
-                            <Code>http://localhost:5000/api/llm</Code>. Below are the primary
-                            endpoints used by the frontend.
+                            We believe everyone deserves access to clear, polished writing. Not
+                            everyone is a natural wordsmith — and that&apos;s okay. Steeze Humanizer was
+                            born from the idea that AI can be a collaborative partner in the
+                            writing process, helping you refine your voice rather than replacing
+                            it.
                         </p>
 
-                        <div className="space-y-4">
-                            <EndpointCard
-                                method="POST"
-                                path="/api/llm/rewrite"
-                                description="Rewrites the given text using the specified tone. This is the core humanization endpoint."
-                                body={`{
-  "text": "Your text to humanize...",
-  "targetMode": "Neutral" | "Formal" | "Casual"
-}`}
-                                response={`{
-  "rewritten": "The humanized output text...",
-  "changes": [
-    "Changed passive voice to active",
-    "Simplified complex sentence"
-  ]
-}`}
-                            />
+                        <h3 className="text-base font-bold text-foreground">What Drives Us</h3>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {[
+                                {
+                                    emoji: "🎯",
+                                    title: "User-First Design",
+                                    desc: "Every feature starts with a real user need. We keep our interface clean, fast, and distraction-free.",
+                                },
+                                {
+                                    emoji: "🤖",
+                                    title: "Responsible AI",
+                                    desc: "We build guardrails into our tools. Steeze Humanizer is designed to improve writing, not to enable plagiarism or academic dishonesty.",
+                                },
+                                {
+                                    emoji: "🚀",
+                                    title: "Startup Speed",
+                                    desc: "As a small team, we ship fast and iterate based on real feedback. New features and improvements land regularly.",
+                                },
+                                {
+                                    emoji: "💡",
+                                    title: "Transparency",
+                                    desc: "We're honest about what our tools can and can't do. No overpromises — just practical, useful technology.",
+                                },
+                            ].map(({ emoji, title, desc }) => (
+                                <div
+                                    key={title}
+                                    className="rounded-xl border border-card-border bg-card-bg p-4 backdrop-blur-lg transition hover:border-teal/25"
+                                >
+                                    <span className="text-xl">{emoji}</span>
+                                    <h4 className="mt-2 text-sm font-bold text-foreground">{title}</h4>
+                                    <p className="mt-1.5 text-xs leading-relaxed text-foreground/55">
+                                        {desc}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
 
-                            <EndpointCard
-                                method="POST"
-                                path="/api/llm/history"
-                                description="Saves a rewrite entry to the authenticated user's history. Requires a valid JWT token in the Authorization header."
-                                body={`{
-  "text": "Original input text",
-  "humanizedText": "Rewritten output",
-  "tone": "Neutral"
-}
+                        <h3 className="text-base font-bold text-foreground">Our Story</h3>
+                        <p>
+                            Steeze Tech started as a side project between a handful of friends who
+                            were frustrated with the state of AI writing tools — either too
+                            robotic, too expensive, or too dishonest about what they do. We wanted
+                            to build something different: a free, elegant tool that helps writers
+                            at every level polish their work while keeping it authentically
+                            theirs.
+                        </p>
+                        <p>
+                            Today, Steeze Humanizer is our flagship product, and we&apos;re just
+                            getting started. We have plans for more tools, more tones, more
+                            language support, and deeper writing assistance — all guided by our
+                            community&apos;s feedback.
+                        </p>
 
-Headers: {
-  "Authorization": "Bearer <token>"
-}`}
-                                response={`{
-  "success": true,
-  "entry": { ... }
-}`}
-                            />
-
-                            <EndpointCard
-                                method="GET"
-                                path="/api/llm/history"
-                                description="Retrieves all history entries for the authenticated user. Requires JWT."
-                                response={`{
-  "history": [
-    {
-      "id": 1,
-      "text": "Original text",
-      "humanizedText": "Rewritten text",
-      "tone": "Formal",
-      "createdAt": "2026-02-22T12:00:00Z"
-    }
-  ]
-}`}
-                            />
-
-                            <EndpointCard
-                                method="POST"
-                                path="/users"
-                                description="Creates a new user account."
-                                body={`{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "securepassword",
-  "phone": "+1234567890"
-}`}
-                                response={`{
-  "user": {
-    "id": 1,
-    "name": "John Doe",
-    "email": "john@example.com"
-  }
-}`}
-                            />
+                        <div className="rounded-xl border border-teal/20 bg-teal/[0.04] p-5 mt-2">
+                            <p className="text-xs leading-relaxed text-foreground/60">
+                                <span className="font-bold text-teal">Want to reach out?</span>{" "}
+                                We&apos;d love to hear from you — whether it&apos;s feedback, feature
+                                requests, or just to say hi. Drop us a line at{" "}
+                                <span className="font-medium text-teal">hello@steezetech.com</span>.
+                            </p>
                         </div>
                     </Section>
 
