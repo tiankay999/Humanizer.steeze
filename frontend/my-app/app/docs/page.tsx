@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
 import BackgroundEffects from "../components/BackgroundEffects";
+import Image from "next/image";
 
 /* ══════════════════════════════════════════════
    Docs – Table of Contents
@@ -403,54 +404,60 @@ export default function DocsPage() {
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             <FeatureCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                                    </svg>
+                                    <Image src="/pen.webp" alt="Rewrite"
+                                    width={40}
+                                    height={20}
+                                    />
                                 }
                                 title="Smart Rewriting"
                                 description="Our LLM analyzes sentence structure, word choice, and flow to produce naturally-worded text that retains your original meaning."
                             />
                             <FeatureCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
-                                    </svg>
+                                    <Image src="/meg.png" alt="Rewrite"
+                                    width={40}
+                                    height={20}
+                                    />
                                 }
                                 title="Tone Selection"
                                 description="Switch between Neutral, Formal, and Casual tones with a single click. Each adjusts vocabulary, sentence length, and formality level."
                             />
                             <FeatureCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                    </svg>
+                                    <Image src="/clip.avif" alt="Rewrite"
+                                    width={40}
+                                    height={20}
+                                    />
                                 }
                                 title="One-Click Copy"
                                 description="Instantly copy the humanized output to your clipboard with a single button press. No manual selection required."
                             />
                             <FeatureCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                                    </svg>
+                                    <Image src="/clock.avif" alt="Rewrite"
+                                    width={40}
+                                    height={20}
+                                    />
                                 }
                                 title="History Tracking"
                                 description="When logged in, every rewrite is automatically saved. Browse, reload, or reference past humanizations from the History panel."
                             />
                             <FeatureCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" /><polyline points="14 2 14 8 20 8" /><path d="M2 15h10" /><path d="m9 18 3-3-3-3" />
-                                    </svg>
+                                    <Image src="/file4.0.png" alt="Rewrite"
+                                    width={80}
+                                    height={90}
+                                    />
                                 }
                                 title="Keep Formatting"
                                 description="Toggle 'Keep formatting' to preserve your original paragraph structure, bullet points, and line breaks during rewriting."
                             />
                             <FeatureCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                    </svg>
+                                    <Image src="/pas.png" alt="Rewrite"
+                                    width={40}
+                                    height={20}
+                                    />
                                 }
                                 title="Secure Auth"
                                 description="Create an account with email & password. JWT-based authentication keeps your data safe and your sessions private."
