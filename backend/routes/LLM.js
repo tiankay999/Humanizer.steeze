@@ -5,6 +5,7 @@ require('dotenv').config();
 const Text = require('../models/text');
 const User = require('../models/users');
 const authMiddleware = require('../middleware/authmiddleware');
+const guestLimitMiddleware = require('../middleware/guestLimitMiddleware');
 
 // Set up association
 User.hasMany(Text, { foreignKey: 'userId' });
@@ -81,13 +82,13 @@ async function callLLM(messages) {
 }
 
 // 1. Rewrite Prompt( system prompt emphasizes improving clarity, coherence, and tone without changing meaning, while ensuring the output is human-like and strictly in JSON format. The user prompt provides the text to rewrite along with optional parameters for target mode, constraints, and audience. The response is expected to include the rewritten text, a list of changes made, and any risk flags identified.)
-router.post('/rewrite', async (req, res) => {
+router.post('/rewrite', guestLimitMiddleware, async (req, res) => {
     try {
         const { text, targetMode, constraints, audience } = req.body;
         if (!text) return res.status(400).json({ error: "Text is required" });
 
         const messages = [
-            { role: "system", content: "You are a rewriting assistant. Rewrite the user’s text so it sounds naturally written by a real person, while keeping the original meaning, facts, numbers, and named entities unchanged. " },
+            { role: "system", content: "You are a rewriting assistant. Rewrite the user's text so it sounds naturally written by a real person, while keeping the original meaning, facts, numbers, and named entities unchanged. " },
             { role: "system", content: "If the user provides constraints, target audience, or target writing mode, ensure the rewritten text adheres to those requirements. If no specific instructions are given, simply enhance the text while maintaining its original intent, REMOVE ALL DASHES WITH THE SENTENCES AND REPLACE IT WITH SPACES OR OTHER PUNCTUATIONS." },
             {
                 role: "user", content: `Rewrite this text: "${text}"
