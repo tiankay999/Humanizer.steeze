@@ -15,6 +15,7 @@ app.use(cors({
   origin: ["http://localhost:5000", "http://localhost:3000"],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   credentials: true,
+  exposedHeaders: ["X-Guest-Uses-Remaining"],
 }));
 
 
@@ -47,7 +48,7 @@ app.use('/api/llm', LLMRouter);
 app.use('/login', LoginRouter);
 
 //admin routes
-app.use('/admin',AdminRouter);
+app.use('/admin', AdminRouter);
 
 
 //otp routes
