@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import Header from "./components/Header";
 import BackgroundEffects from "./components/BackgroundEffects";
 import { InputCard, OutputCard } from "./components/EditorCards";
@@ -22,6 +23,16 @@ export default function HomePage() {
   const [keepFormatting, setKeepFormatting] = useState(false);
   const [tone, setTone] = useState<Tone>("Neutral");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [guestUsesLeft, setGuestUsesLeft] = useState(5);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Sync guest uses from localStorage & check auth state
+  useEffect(() => {
+    const stored = localStorage.getItem("guestUsesLeft");
+    if (stored !== null) setGuestUsesLeft(Number(stored));
+    setIsLoggedIn(!!localStorage.getItem("token"));
+  }, []);
 
   /* ── actions ── */
   const showToast = useCallback((msg: string) => {
@@ -64,15 +75,40 @@ export default function HomePage() {
     setError("");
     setLoading(true);
     try {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch(`${API_BASE}/rewrite`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ text: inputText, targetMode: tone }),
       });
+
+      // Handle guest limit reached
+      if (res.status === 403) {
+        const errData = await res.json().catch(() => null);
+        if (errData?.requiresAuth) {
+          setGuestUsesLeft(0);
+          localStorage.setItem("guestUsesLeft", "0");
+          setShowLimitModal(true);
+          return;
+        }
+      }
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.error || `Server error (${res.status})`);
+      }
+
+      // Update guest usage counter from response header
+      const remaining = res.headers.get("X-Guest-Uses-Remaining");
+      if (remaining !== null) {
+        const rem = Number(remaining);
+        setGuestUsesLeft(rem);
+        localStorage.setItem("guestUsesLeft", String(rem));
       }
 
       const data = await res.json();
@@ -164,6 +200,65 @@ export default function HomePage() {
           onToneChange={setTone}
         />
       </main>
+
+      {/* ═══ Guest usage badge ═══ */}
+      {!isLoggedIn && (
+        <div className="fixed bottom-6 left-6 z-40 flex items-center gap-2 rounded-full border border-teal/20 bg-[#0a0e1a]/90 px-4 py-2 text-xs font-medium text-foreground/70 shadow-lg backdrop-blur-md">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span>
+            <span className="text-teal font-bold">{guestUsesLeft}</span>/5 free uses left
+          </span>
+        </div>
+      )}
+
+      {/* ═══ Guest limit modal ═══ */}
+      {showLimitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative mx-4 w-full max-w-md rounded-2xl border border-teal/20 bg-[#0d1224] p-8 text-center shadow-2xl">
+            {/* Close button */}
+            <button
+              onClick={() => setShowLimitModal(false)}
+              className="absolute right-4 top-4 text-foreground/40 transition hover:text-foreground"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            {/* Icon */}
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal/10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+
+            <h2 className="mb-2 text-xl font-bold text-foreground">
+              Free limit reached
+            </h2>
+            <p className="mb-6 text-sm leading-relaxed text-foreground/55">
+              You&apos;ve used all <span className="font-semibold text-teal">5 free</span> humanizations.
+              Create an account or log in to keep going — it&apos;s free!
+            </p>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link
+                href="/signup"
+                className="inline-block rounded-lg bg-gradient-to-r from-teal to-teal-dark px-6 py-2.5 text-sm font-semibold text-[#0a0e1a] transition hover:brightness-110"
+              >
+                Sign Up
+              </Link>
+              <Link
+                href="/login"
+                className="inline-block rounded-lg border border-teal/30 px-6 py-2.5 text-sm font-semibold text-teal transition hover:bg-teal/10"
+              >
+                Log In
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ════════ FOOTER ════════ */}
       <footer className="relative z-10 border-t border-card-border py-4 text-center text-xs text-foreground/30">
