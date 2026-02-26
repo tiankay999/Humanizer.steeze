@@ -222,3 +222,5 @@ router.get('/history', authMiddleware, async (req, res) => {
 module.exports = router;
 
 // this file defines the /rewrite, /draft, /similarity, /guardrail, and /history endpoints, each with specific system and user prompts to guide the LLM's response. The callLLM function handles communication with Groq's API, and the cleanJSON helper ensures we extract valid JSON from the LLM's output. Rate limiting is applied to prevent abuse and stay within API limits.
+
+//some of these are not used yet but will be used in the future  //
