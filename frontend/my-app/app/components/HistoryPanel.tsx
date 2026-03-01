@@ -16,7 +16,7 @@ interface HistoryPanelProps {
     onLoadEntry: (original: string, humanized: string) => void;
 }
 
-const API_BASE = "http://localhost:5000/api/llm";
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/llm`;
 
 export default function HistoryPanel({ isOpen, onClose, onLoadEntry }: HistoryPanelProps) {
     const [entries, setEntries] = useState<HistoryEntry[]>([]);

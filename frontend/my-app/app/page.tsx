@@ -9,7 +9,7 @@ import ActionBar, { type Tone } from "./components/ActionBar";
 import Toast from "./components/Toast";
 import HistoryPanel from "./components/HistoryPanel";
 
-const API_BASE = "http://localhost:5000/api/llm";
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/llm`;
 
 /* ══════════════════════════════════════════════
    Main Page
