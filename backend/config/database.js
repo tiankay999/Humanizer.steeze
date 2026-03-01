@@ -10,7 +10,7 @@ const sequelize = new Sequelize({
   password: process.env.DB_PASSWORD || "",
   port: process.env.DB_PORT || "3306",
   host: process.env.DB_HOST || "localhost",
-  database: process.env.DATABASE_URL,
+database: process.env.DATABASE_URL,
 });
 
 
