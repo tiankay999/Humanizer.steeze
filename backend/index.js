@@ -12,7 +12,7 @@ const cors = require('cors');
 
 
 app.use(cors({
-  origin: ["https://humanizer-steeze.onrender.com", "https://steezehumanizer.vercel.app/"],
+  origin: ["https://steezehumanizer.vercel.app"],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   credentials: true,
   exposedHeaders: ["X-Guest-Uses-Remaining"],
