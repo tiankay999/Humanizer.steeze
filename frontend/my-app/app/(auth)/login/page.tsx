@@ -46,7 +46,7 @@ export default function LoginPage() {
             }
             setError("");
             setLoading(true);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '')}/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

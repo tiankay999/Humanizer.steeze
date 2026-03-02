@@ -55,7 +55,7 @@ export default function SignupPage() {
             setError("");
             setLoading(true);
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '')}/users`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
