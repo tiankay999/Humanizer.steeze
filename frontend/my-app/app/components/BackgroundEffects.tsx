@@ -12,19 +12,7 @@ export default function BackgroundEffects() {
             <div className="blob blob-3" aria-hidden="true" />
 
             {/* Faint watermark logo */}
-            <div
-                className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center"
-                aria-hidden="true"
-            >
-                <Image
-                    src="/steeze-logo.png"
-                    alt=""
-                    width={480}
-                    height={480}
-                    className="opacity-[0.025] select-none"
-                    priority={false}
-                />
-            </div>
+
         </>
     );
 }
