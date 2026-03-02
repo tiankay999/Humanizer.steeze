@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/users");
-const Admin = require("../models/admin");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
@@ -111,7 +110,7 @@ router.post("/google", async (req, res) => {
 
     } catch (error) {
         console.error("Google login error:", error.message);
-        return res.status(401).json({ message: "Invalid Google credential" });
+        return res.status(401).json({ message: "Invalid Google credential", error: error.message });
     }
 });
 
