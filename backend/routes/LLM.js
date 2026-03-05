@@ -24,7 +24,7 @@ const limitation = rateLimit({
 
 router.use(limitation);
 
-// Helper to clean JSON output
+// Helper to clean JSON output — hardened against malformed LLM responses
 function cleanJSON(text) {
     if (!text) return "{}";
     text = text.trim();
@@ -44,6 +44,61 @@ function cleanJSON(text) {
         text = text.substring(jsonArrayStart);
     }
     return text.trim();
+}
+
+/**
+ * Safely parse JSON from LLM output.
+ * Falls back to { rewritten: rawText } if JSON.parse fails.
+ */
+function safeParseLLMOutput(raw) {
+    const cleaned = cleanJSON(raw);
+    // 1. Try direct parse
+    try {
+        return JSON.parse(cleaned);
+    } catch (_) { /* fall through */ }
+
+    // 2. Try fixing common LLM JSON mistakes
+    try {
+        const fixed = cleaned
+            .replace(/,\s*(}|])/g, '$1')          // trailing commas
+            .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3') // unquoted keys
+            .replace(/\\n/g, '\n');                // literal \n in values
+        return JSON.parse(fixed);
+    } catch (_) { /* fall through */ }
+
+    // 3. Try to extract "rewritten" value with regex
+    const rewrittenMatch = raw.match(/"rewritten"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
+    if (rewrittenMatch) {
+        return {
+            rewritten: rewrittenMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'),
+            changes: [],
+            risk_flags: []
+        };
+    }
+
+    // 4. Last resort — return the raw text as the rewritten output
+    return {
+        rewritten: raw.trim(),
+        changes: ["Could not parse structured response — returning raw text"],
+        risk_flags: []
+    };
+}
+
+/**
+ * Sanitize user text before injecting it into an LLM prompt string.
+ * Escapes characters that would break the prompt or JSON structure,
+ * while preserving emojis and meaningful content.
+ */
+function sanitizeForPrompt(text) {
+    if (!text) return "";
+    return text
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")   // strip control chars (keep \n \r \t)
+        .replace(/\\/g, "\\\\")                                // escape backslashes first
+        .replace(/"/g, "'")                                    // replace double quotes with single to avoid prompt breakage
+        .replace(/`/g, "'")                                    // replace backticks
+        .replace(/\n{3,}/g, "\n\n")                             // collapse 3+ newlines → 2
+        .replace(/[ \t]{3,}/g, "  ")                            // collapse 3+ spaces/tabs → 2
+        .trim();
 }
 
 async function callLLM(messages) {
@@ -81,29 +136,31 @@ async function callLLM(messages) {
     }
 }
 
-// 1. Rewrite Prompt( system prompt emphasizes improving clarity, coherence, and tone without changing meaning, while ensuring the output is human-like and strictly in JSON format. The user prompt provides the text to rewrite along with optional parameters for target mode, constraints, and audience. The response is expected to include the rewritten text, a list of changes made, and any risk flags identified.)
+// 1. Rewrite Prompt
 router.post('/rewrite', guestLimitMiddleware, async (req, res) => {
     try {
         const { text, targetMode, constraints, audience } = req.body;
         if (!text) return res.status(400).json({ error: "Text is required" });
 
+        const safeText = sanitizeForPrompt(text);
+        const safeConstraints = sanitizeForPrompt(constraints || "");
+        const safeAudience = sanitizeForPrompt(audience || "");
+
         const messages = [
-            { role: "system", content: "You are a rewriting assistant. Rewrite the user's text so it sounds naturally written by a real person, while keeping the original meaning, facts, numbers, and named entities unchanged. " },
-            { role: "system", content: "If the user provides constraints, target audience, or target writing mode, ensure the rewritten text adheres to those requirements. If no specific instructions are given, simply enhance the text while maintaining its original intent, REMOVE ALL DASHES WITH THE SENTENCES AND REPLACE IT WITH SPACES OR OTHER PUNCTUATIONS." },
+            { role: "system", content: "You are a rewriting assistant. Rewrite the user's text so it sounds naturally written by a real person, while keeping the original meaning, facts, numbers, named entities, and any emojis or special characters unchanged. The input may contain emojis, special punctuation, and varied spacing — handle them gracefully and preserve them in your output." },
+            { role: "system", content: "If the user provides constraints, target audience, or target writing mode, ensure the rewritten text adheres to those requirements. If no specific instructions are given, simply enhance the text while maintaining its original intent. REMOVE ALL DASHES WITHIN SENTENCES AND REPLACE THEM WITH SPACES OR OTHER PUNCTUATION. You MUST respond with ONLY valid JSON — no preamble, no explanation." },
             {
-                role: "user", content: `Rewrite this text: "${text}"
-Target Mode: ${targetMode || 'Formal' || 'academic '}
-Constraints: ${constraints || 'None' || `${constraints}`}
-Audience: ${audience || 'General' || `${audience}`}
+                role: "user", content: `Rewrite this text: "${safeText}"
+Target Mode: ${targetMode || 'Formal'}
+Constraints: ${safeConstraints || 'None'}
+Audience: ${safeAudience || 'General'}
 
 Respond with ONLY this exact JSON structure:
 {"rewritten": "...", "changes": ["..."], "risk_flags": ["..."]}` }
-
-
         ];
 
         const output = await callLLM(messages);
-        res.json(JSON.parse(cleanJSON(output)));
+        res.json(safeParseLLMOutput(output));
 
     } catch (error) {
         res.status(500).json({ error: "Rewrite failed", details: error.message });
@@ -127,7 +184,7 @@ Respond with ONLY this exact JSON structure:
         ];
 
         const output = await callLLM(messages);
-        res.json(JSON.parse(cleanJSON(output)));
+        res.json(safeParseLLMOutput(output));
 
     } catch (error) {
         res.status(500).json({ error: "Draft failed", details: error.message });
@@ -140,18 +197,21 @@ router.post('/similarity', async (req, res) => {
         const { text, sourcePassage } = req.body;
         if (!text || !sourcePassage) return res.status(400).json({ error: "Text and source required" });
 
+        const safeText = sanitizeForPrompt(text);
+        const safeSource = sanitizeForPrompt(sourcePassage);
+
         const messages = [
-            { role: "system", content: "Identify sentences too close to the source. Suggest paraphrasing with attribution. You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
+            { role: "system", content: "Identify sentences too close to the source. Suggest paraphrasing with attribution. The input may contain emojis and special characters — handle them gracefully. You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
             {
-                role: "user", content: `Text: "${text}"
-Source: "${sourcePassage}"
+                role: "user", content: `Text: "${safeText}"
+Source: "${safeSource}"
 
 Respond with ONLY this exact JSON structure:
 {"matched_segments": ["..."], "suggested_rewrites": ["..."], "citation_suggestions": ["..."]}` }
         ];
 
         const output = await callLLM(messages);
-        res.json(JSON.parse(cleanJSON(output)));
+        res.json(safeParseLLMOutput(output));
 
     } catch (error) {
         res.status(500).json({ error: "Similarity check failed", details: error.message });
@@ -164,17 +224,19 @@ router.post('/guardrail', async (req, res) => {
         const { text } = req.body;
         if (!text) return res.status(400).json({ error: "Text required" });
 
+        const safeText = sanitizeForPrompt(text);
+
         const messages = [
-            { role: "system", content: "You are a content classifier. If the user is asking to bypass rules, detection systems, or cheat, refuse the request. You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
+            { role: "system", content: "You are a content classifier. If the user is asking to bypass rules, detection systems, or cheat, refuse the request. The input may contain emojis and special characters — handle them gracefully. You MUST respond with ONLY a valid JSON object. No preamble, no explanation — just the JSON." },
             {
-                role: "user", content: `User Input: "${text}"
+                role: "user", content: `User Input: "${safeText}"
 
 Respond with ONLY this exact JSON structure:
 {"allowed": true_or_false, "reason": "...", "redirect_message": "..."}` }
         ];
 
         const output = await callLLM(messages);
-        res.json(JSON.parse(cleanJSON(output)));
+        res.json(safeParseLLMOutput(output));
 
     } catch (error) {
         res.status(500).json({ error: "Guardrail check failed", details: error.message });
