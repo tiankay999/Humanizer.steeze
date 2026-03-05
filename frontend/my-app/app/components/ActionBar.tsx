@@ -68,37 +68,42 @@ export default function ActionBar({
             </label>
 
             {/* Tone selector */}
-            <div className="relative">
-                <label htmlFor="tone-select" className="sr-only">
-                    Tone
-                </label>
-                <select
-                    id="tone-select"
-                    value={tone}
-                    onChange={(e) => onToneChange(e.target.value as Tone)}
-                    className="glow-ring appearance-none rounded-lg border border-teal/25 bg-white/5 px-4 py-2 pr-8 text-xs font-medium text-foreground/70 transition hover:border-teal/40 focus:border-teal/50"
-                >
-                    {TONES.map((t) => (
-                        <option key={t} value={t} className="bg-[#0d1826]">
-                            Tone: {t}
-                        </option>
-                    ))}
-                </select>
-                {/* chevron */}
-                <svg
-                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/40"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
-                    <polyline points="6 9 12 15 18 9" />
-                </svg>
+            <div className="flex flex-col items-center gap-1.5">
+                <div className="relative">
+                    <label htmlFor="tone-select" className="sr-only">
+                        Tone
+                    </label>
+                    <select
+                        id="tone-select"
+                        value={tone}
+                        onChange={(e) => onToneChange(e.target.value as Tone)}
+                        className="glow-ring appearance-none rounded-lg border border-teal/25 bg-white/5 px-4 py-2 pr-8 text-xs font-medium text-foreground/70 transition hover:border-teal/40 focus:border-teal/50"
+                    >
+                        {TONES.map((t) => (
+                            <option key={t} value={t} className="bg-[#0d1826]">
+                                Tone: {t}
+                            </option>
+                        ))}
+                    </select>
+                    {/* chevron */}
+                    <svg
+                        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/40"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </div>
+                <span className="text-[10px] text-teal/50 italic font-bold animate-pulse">
+                    Pick a tone for best results
+                </span>
             </div>
         </div>
     );
