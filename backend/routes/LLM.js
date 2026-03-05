@@ -51,35 +51,59 @@ function cleanJSON(text) {
  * Falls back to { rewritten: rawText } if JSON.parse fails.
  */
 function safeParseLLMOutput(raw) {
+    if (!raw || typeof raw !== 'string') {
+        return { rewritten: '', changes: [], risk_flags: [] };
+    }
+
     const cleaned = cleanJSON(raw);
+
     // 1. Try direct parse
     try {
         return JSON.parse(cleaned);
     } catch (_) { /* fall through */ }
 
-    // 2. Try fixing common LLM JSON mistakes
+    // 2. Escape literal newlines/tabs inside JSON string values, fix common LLM mistakes
     try {
         const fixed = cleaned
-            .replace(/,\s*(}|])/g, '$1')          // trailing commas
-            .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3') // unquoted keys
-            .replace(/\\n/g, '\n');                // literal \n in values
+            .replace(/,\s*(}|])/g, '$1')                    // trailing commas
+            .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')   // unquoted keys
+            .replace(/(?<=[":]\s*")([^"]*?)(?=")/gs, (match) => {
+                // Escape raw newlines/tabs that are inside JSON string values
+                return match
+                    .replace(/\r\n/g, '\\n')
+                    .replace(/\n/g, '\\n')
+                    .replace(/\r/g, '\\r')
+                    .replace(/\t/g, '\\t');
+            });
         return JSON.parse(fixed);
     } catch (_) { /* fall through */ }
 
-    // 3. Try to extract "rewritten" value with regex
+    // 3. Brute-force: escape ALL raw newlines then try parse
+    try {
+        const bruteFixed = cleaned
+            .replace(/\r\n/g, '\\n')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+        return JSON.parse(bruteFixed);
+    } catch (_) { /* fall through */ }
+
+    // 4. Try to extract "rewritten" value with regex (handles multi-line)
     const rewrittenMatch = raw.match(/"rewritten"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
     if (rewrittenMatch) {
         return {
-            rewritten: rewrittenMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'),
+            rewritten: rewrittenMatch[1]
+                .replace(/\\n/g, '\n')
+                .replace(/\\"/g, '"'),
             changes: [],
             risk_flags: []
         };
     }
 
-    // 4. Last resort — return the raw text as the rewritten output
+    // 5. Last resort — return the raw text as the rewritten output
     return {
         rewritten: raw.trim(),
-        changes: ["Could not parse structured response — returning raw text"],
+        changes: ['Could not parse structured response — returning raw text'],
         risk_flags: []
     };
 }
@@ -90,14 +114,14 @@ function safeParseLLMOutput(raw) {
  * while preserving emojis and meaningful content.
  */
 function sanitizeForPrompt(text) {
-    if (!text) return "";
+    if (!text || typeof text !== 'string') return "";
     return text
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")   // strip control chars (keep \n \r \t)
-        .replace(/\\/g, "\\\\")                                // escape backslashes first
         .replace(/"/g, "'")                                    // replace double quotes with single to avoid prompt breakage
         .replace(/`/g, "'")                                    // replace backticks
+        .replace(/\r\n/g, "\n")                                 // normalize Windows newlines
         .replace(/\n{3,}/g, "\n\n")                             // collapse 3+ newlines → 2
-        .replace(/[ \t]{3,}/g, "  ")                            // collapse 3+ spaces/tabs → 2
+        .replace(/[ \t]{2,}/g, " ")                             // collapse 2+ spaces/tabs → 1
         .trim();
 }
 
@@ -160,9 +184,12 @@ Respond with ONLY this exact JSON structure:
         ];
 
         const output = await callLLM(messages);
-        res.json(safeParseLLMOutput(output));
+        console.log('[Rewrite] Raw LLM output:', JSON.stringify(output).substring(0, 500));
+        const parsed = safeParseLLMOutput(output);
+        res.json(parsed);
 
     } catch (error) {
+        console.error('[Rewrite] Error:', error.message);
         res.status(500).json({ error: "Rewrite failed", details: error.message });
     }
 });
