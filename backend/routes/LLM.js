@@ -184,12 +184,9 @@ Respond with ONLY this exact JSON structure:
         ];
 
         const output = await callLLM(messages);
-        console.log('[Rewrite] Raw LLM output:', JSON.stringify(output).substring(0, 500));
-        const parsed = safeParseLLMOutput(output);
-        res.json(parsed);
+        res.json(safeParseLLMOutput(output));
 
     } catch (error) {
-        console.error('[Rewrite] Error:', error.message);
         res.status(500).json({ error: "Rewrite failed", details: error.message });
     }
 });
