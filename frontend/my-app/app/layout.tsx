@@ -143,6 +143,11 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1104510433068087"
+          crossOrigin="anonymous"
+        ></script>
+        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
