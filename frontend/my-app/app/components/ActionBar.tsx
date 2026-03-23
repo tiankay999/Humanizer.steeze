@@ -1,4 +1,4 @@
-const TONES = ["Neutral", "Formal", "Casual"] as const;
+const TONES = ["Neutral", "Formal", "Casual", "Academic", "Strict", "Professional", "Creative"] as const;
 export type Tone = (typeof TONES)[number];
 
 interface ActionBarProps {
