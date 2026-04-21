@@ -166,6 +166,8 @@ export default function RootLayout({
             `,
           }}
         />
+        <script src="https://pl29209819.profitablecpmratenetwork.com/7b/91/6e/7b916ea9dabe2ea1b6a8faf4a0e36ad7.js"></script>
+        <script src="https://pl29209817.profitablecpmratenetwork.com/5e/a3/10/5ea31020d28519c1cea08f5ba86d1c47.js"></script>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
